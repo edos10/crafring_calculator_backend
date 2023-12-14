@@ -38,12 +38,12 @@ func (handler *RouteHandler) getRecipes(w http.ResponseWriter, r *http.Request) 
 	params := mux.Vars(r)
 	itemID := params["item_id"]
 
-	recipes, err := handler.db.GetRecipe(itemID)
+	item, err := handler.db.GetItem(itemID)
 	if err != nil {
 		w.WriteHeader(500)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(recipes)
+	json.NewEncoder(w).Encode(item.Recipes)
 }

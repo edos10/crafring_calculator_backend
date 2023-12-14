@@ -16,5 +16,6 @@ func SetupRoutes() (*mux.Router, error) {
 	router := mux.NewRouter()
 	router.HandleFunc("/items", handler.getItems).Methods("GET")
 	router.HandleFunc("/recipes/{item_id}", handler.getRecipes).Methods("GET")
+	router.HandleFunc("/recipes/{item_id}", handler.getRecipes).Methods("GET")
 	return router, nil
 }
