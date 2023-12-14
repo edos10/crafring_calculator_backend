@@ -17,10 +17,15 @@ type Item struct {
 }
 
 type Recipe struct {
-	ID       int      `json:"recipe_id"`
-	Name     string   `json:"recipe_name"`
-	ItemID   int      `json:"item_id"`
-	Children []Recipe `json:"children"`
+	ID                int    `json:"recipe_id"`
+	Name              string `json:"recipe_name"`
+	ItemID            int    `json:"item_id"`
+	FactoryId         int    `json:"factory_id"`
+	ProductionFactory int    `json:"production_factory"`
+	RecipeForProduct  int
+	BeltName          string   `json:"belt_name"`
+	BeltQuantity      int      `json:"belt_quantity"`
+	Children          []Recipe `json:"children"`
 }
 
 func getItems(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +64,7 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	itemID := params["item_id"]
-
+	fmt.Println(itemID)
 	recipes, err := getRecipeTree(itemID, db)
 	if err != nil {
 		log.Fatal(err)
@@ -69,31 +74,63 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(recipes)
 }
 
-func getRecipeTree(itemID string, db *sql.DB) ([]Recipe, error) {
-	rows, err := db.Query("SELECT * FROM recipes WHERE item_id=$1", itemID)
+func getRecipeTree(itemId string, db *sql.DB) (*Recipe, error) {
+	if itemId == "0" {
+		return nil, nil
+	}
+
+	var recipe Recipe
+
+	// читаем из recipes данные
+	row := db.QueryRow("SELECT * FROM recipes WHERE item_id=$1", itemId)
+	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var recipes []Recipe
-	for rows.Next() {
-		var recipe Recipe
-		err := rows.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID)
-		if err != nil {
-			return nil, err
-		}
+	//
+	rowForBelt := db.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", recipe.ID)
 
-		children, err := getRecipeTree(fmt.Sprintf("%d", recipe.ID), db)
-		if err != nil {
-			return nil, err
-		}
-		recipe.Children = children
-
-		recipes = append(recipes, recipe)
+	var BeltId int
+	err = rowForBelt.Scan(&BeltId, &recipe.BeltQuantity)
+	if err != nil {
+		return nil, err
 	}
 
-	return recipes, nil
+	//
+	rowForBeltName := db.QueryRow("SELECT name FROM belts WHERE id=$1", BeltId)
+	err = rowForBeltName.Scan(&recipe.BeltName)
+	if err != nil {
+		return nil, err
+	}
+
+	recipes_children := make([]Recipe, 0)
+
+	rowsForChildRecipes, err := db.Query("SELECT child_id FROM recipes_ierarchy WHERE id=$1", recipe.ID)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rowsForChildRecipes.Close()
+
+	for rowsForChildRecipes.Next() {
+		var child_id int
+		err := rowsForChildRecipes.Scan(&child_id)
+		if err != nil {
+			return nil, err
+		}
+
+		child, err := getRecipeTree(fmt.Sprintf("%d", child_id), db)
+		if err != nil {
+			return nil, err
+		}
+		if child != nil {
+			recipes_children = append(recipes_children, *child)
+		}
+	}
+
+	recipe.Children = recipes_children
+	return &recipe, nil
 }
 
 func SetupRoutes() *mux.Router {
