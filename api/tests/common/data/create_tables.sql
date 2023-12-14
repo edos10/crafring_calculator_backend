@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS factories (
     name VARCHAR(255) NOT NULL,
 );
 
--- NOT USED ---
+-- -- NOT USED ---
 CREATE TABLE IF NOT EXISTS belts (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS recipes (
     name VARCHAR(255) NOT NULL,
     item_id INT NOT NULL,
     factory_id INT NOT NULL,
-    production_rate_per_second DOUBLE PRECISION NOT NULL,
-    FOREIGN KEY (item_id) REFERENCES items (id),
-    FOREIGN KEY (factory_id) REFERENCES factories (id)
+    production_rate_per_second FLOAT NOT NULL,
+    -- FOREIGN KEY (item_id) REFERENCES items(id),
+    -- FOREIGN KEY (factory_id) REFERENCES factories (id)
 );
 
 -- NOT USED ---
@@ -32,13 +32,13 @@ CREATE TABLE IF NOT EXISTS recipe_belts (
     recipe_id INT NOT NULL,
     belt_id INT NOT NULL,
     quantity INT NOT NULL,
-    FOREIGN KEY (recipe_id) REFERENCES recipes (id),
-    FOREIGN KEY (belt_id) REFERENCES belts (id)
+    -- FOREIGN KEY (recipe_id) REFERENCES recipes (id),
+    -- FOREIGN KEY (belt_id) REFERENCES belts (id)
 );
 
 CREATE TABLE IF NOT EXISTS recipes_input
 (
-    recipe_id integer NOT NULL,
-    item_id integer NOT NULL,
-    item_quantity integer NOT NULL
-)
+    recipe_id INT NOT NULL,
+    item_id INT NOT NULL,
+    item_quantity INT NOT NULL
+);

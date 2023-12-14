@@ -1,4 +1,4 @@
-package unit
+package main
 
 import (
 	"api_service/internal/databases"
@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	_ "github.com/proullon/ramsql/driver"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,7 +122,7 @@ func TestDatabase(t *testing.T) {
 	})
 
 	t.Run("TestItem", func(t *testing.T) {
-		resp, err := sqlDb.GetItem("1")
+		resp, err := sqlDb.GetItem(1)
 
 		assert.NoErrorf(t, err, "GetItem should not fail")
 		assert.NotNil(t, resp, "GetItem response should not be nil")
@@ -130,7 +131,7 @@ func TestDatabase(t *testing.T) {
 	})
 
 	t.Run("TestRecipe", func(t *testing.T) {
-		resp, err := sqlDb.GetRecipe("1")
+		resp, err := sqlDb.GetRecipe(1)
 
 		assert.NoErrorf(t, err, "GetRecipe should not fail")
 		assert.NotNil(t, resp, "GetRecipe response should not be nil")

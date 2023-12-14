@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strconv"
 
 	_ "github.com/lib/pq"
 )
@@ -27,7 +26,7 @@ func GetSqlDatabse(dbHost, dbPort, dbUser, dbPassword, dbName string) (*SqlDatab
 
 // FIXME(lexmach): this is bad
 func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
-	if id == "0" {
+	if id == 0 {
 		return nil, nil
 	}
 
@@ -62,7 +61,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 		return nil, fmt.Errorf("failed to scan row in belts with id %d: %w", beltId, err)
 	}
 
-	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, item_quantity FROM recipes_input WHERE id=$1", recipe.ID)
+	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, item_quantity FROM recipes_input WHERE recipe_id=$1", recipe.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query in recipes_input with id %d: %w", recipe.ID, err)
@@ -98,11 +97,11 @@ func (db *SqlDatabase) getItemRecipesId(id ItemID) (recipeIDs []RecipeID, err er
 
 	for rows.Next() {
 		var recipeID int
-		err := rows.Scan(recipeID)
+		err := rows.Scan(&recipeID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		recipeIDs = append(recipeIDs, strconv.Itoa(recipeID))
+		recipeIDs = append(recipeIDs, recipeID)
 	}
 
 	return recipeIDs, nil
@@ -115,6 +114,7 @@ func (db *SqlDatabase) GetItem(id ItemID) (item *Item, err error) {
 	if db.Connector == nil {
 		return nil, fmt.Errorf("SqlDatabse connector is nil when fetching items")
 	}
+	item = &Item{}
 
 	row := db.Connector.QueryRow("SELECT * FROM items WHERE id=$1", id)
 	err = row.Scan(&item.ID, &item.Name)
@@ -159,7 +159,7 @@ func (db *SqlDatabase) GetItems() ([]*Item, error) {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		item, err := db.GetItem(strconv.Itoa(itemID))
+		item, err := db.GetItem(itemID)
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +171,7 @@ func (db *SqlDatabase) GetItems() ([]*Item, error) {
 
 // FIXME(lexmach): need to count ProductionFactory correctly
 func (db *SqlDatabase) GetRecipeRecursive(id RecipeID) (recipe *RecipeRecursive, err error) {
-	if id == "0" {
+	if id == 0 {
 		return nil, nil
 	}
 
@@ -182,7 +182,7 @@ func (db *SqlDatabase) GetRecipeRecursive(id RecipeID) (recipe *RecipeRecursive,
 	recipe = recipeBase.ToRecursive()
 
 	for _, inputItem := range recipeBase.InputItems {
-		inputItemDB, err := db.GetItem(strconv.Itoa(inputItem.ID))
+		inputItemDB, err := db.GetItem(inputItem.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -205,7 +205,7 @@ func (db *SqlDatabase) GetRecipeRecursive(id RecipeID) (recipe *RecipeRecursive,
 			continue
 		}
 		// FIXME(lexmach): think of multiple recipes in inputItemDB
-		inputItemRecipe, err := db.GetRecipeRecursive(strconv.Itoa(inputItemDB.Recipes[0].ID))
+		inputItemRecipe, err := db.GetRecipeRecursive(inputItemDB.Recipes[0].ID)
 		if err != nil {
 			return nil, err
 		}

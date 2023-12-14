@@ -51,8 +51,8 @@ func (recipe *Recipe) ToRecursive() *RecipeRecursive {
 	}
 }
 
-type RecipeID = string
-type ItemID = string
+type RecipeID = int
+type ItemID = int
 type Database interface {
 	GetItems() ([]*Item, error)
 

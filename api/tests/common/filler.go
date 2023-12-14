@@ -2,16 +2,17 @@ package common
 
 import (
 	"database/sql"
-	"os"
+
+	"github.com/tanimutomo/sqlfile"
 )
 
 func CreateTables(db *sql.DB) error {
-	file, err := os.ReadFile("data/create_tables.sql")
+	s := sqlfile.New()
+	err := s.File("../common/data/create_tables.sql")
 	if err != nil {
 		return err
 	}
-	sql := string(file)
-	_, err = db.Exec(sql)
+	_, err = s.Exec(db)
 	if err != nil {
 		return err
 	}
@@ -19,12 +20,12 @@ func CreateTables(db *sql.DB) error {
 }
 
 func InsertData(db *sql.DB) error {
-	file, err := os.ReadFile("data/insert_test_data.sql")
+	s := sqlfile.New()
+	err := s.File("../common/data/insert_test_data.sql")
 	if err != nil {
 		return err
 	}
-	sql := string(file)
-	_, err = db.Exec(sql)
+	_, err = s.Exec(db)
 	if err != nil {
 		return err
 	}

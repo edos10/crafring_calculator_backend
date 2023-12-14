@@ -32,6 +32,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/proullon/ramsql v0.1.3
 	github.com/stretchr/testify v1.8.4
+	github.com/tanimutomo/sqlfile v1.0.0
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	golang.org/x/arch v0.4.0 // indirect

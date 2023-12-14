@@ -4,6 +4,7 @@ import (
 	"api_service/internal/databases"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -36,7 +37,12 @@ func (handler *RouteHandler) getRecipes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	params := mux.Vars(r)
-	itemID := params["item_id"]
+	itemID, err := strconv.Atoi(params["item_id"])
+
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
 
 	item, err := handler.db.GetItem(itemID)
 	if err != nil {
