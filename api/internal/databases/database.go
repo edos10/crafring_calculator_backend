@@ -40,7 +40,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 	}
 
 	// FIXME(lexmach): rework
-	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", recipe.ID)
+	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", 1)
 	var beltId int
 	err = rowForBelt.Scan(&beltId, &recipe.BeltQuantity)
 	if err != nil {
@@ -99,7 +99,7 @@ func (db *SqlDatabase) getItemRecipesId(id ItemID) (recipeIDs []RecipeID, err er
 		var recipeID int
 		err := rows.Scan(&recipeID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return nil, fmt.Errorf("failed to scan row in getRecipesId: %w", err)
 		}
 		recipeIDs = append(recipeIDs, recipeID)
 	}
@@ -119,7 +119,7 @@ func (db *SqlDatabase) GetItem(id ItemID) (item *Item, err error) {
 	row := db.Connector.QueryRow("SELECT * FROM items WHERE id=$1", id)
 	err = row.Scan(&item.ID, &item.Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan row: %w", err)
+		return nil, fmt.Errorf("failed to scan row in getItem %d: %w", id, err)
 	}
 
 	recipesIDs, err := db.getItemRecipesId(id)
@@ -156,7 +156,7 @@ func (db *SqlDatabase) GetItems() ([]*Item, error) {
 		var itemID int
 		err := rows.Scan(&itemID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return nil, fmt.Errorf("failed to scan row in getItems: %w", err)
 		}
 
 		item, err := db.GetItem(itemID)

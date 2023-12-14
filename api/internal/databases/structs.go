@@ -51,6 +51,23 @@ func (recipe *Recipe) ToRecursive() *RecipeRecursive {
 	}
 }
 
+func (recipe *RecipeRecursive) ToRegular() *Recipe {
+	if recipe == nil {
+		return nil
+	}
+	return &Recipe{
+		ID:                recipe.ID,
+		Name:              recipe.Name,
+		ItemID:            recipe.ItemID,
+		FactoryName:       recipe.FactoryName,
+		ProductionFactory: recipe.ProductionFactory,
+		FactoryId:         recipe.FactoryId,
+		BeltName:          recipe.BeltName,
+		BeltQuantity:      recipe.BeltQuantity,
+		InputItems:        nil,
+	}
+}
+
 type RecipeID = int
 type ItemID = int
 type Database interface {
