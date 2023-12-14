@@ -20,9 +20,9 @@ type Recipe struct {
 	ID                int    `json:"recipe_id"`
 	Name              string `json:"recipe_name"`
 	ItemID            int    `json:"item_id"`
-	FactoryId         int    `json:"factory_id"`
+	FactoryName       string `json:"factory_name"`
 	ProductionFactory int    `json:"production_factory"`
-	RecipeForProduct  int
+	FactoryId         int
 	BeltName          string   `json:"belt_name"`
 	BeltQuantity      int      `json:"belt_quantity"`
 	Children          []Recipe `json:"children"`
@@ -93,6 +93,13 @@ func getRecipeTree(itemId string, db *sql.DB) (*Recipe, error) {
 
 	var BeltId int
 	err = rowForBelt.Scan(&BeltId, &recipe.BeltQuantity)
+	if err != nil {
+		return nil, err
+	}
+
+	rowForFactory := db.QueryRow("SELECT name FROM factories WHERE id=$1", recipe.FactoryId)
+
+	err = rowForFactory.Scan(&recipe.FactoryName)
 	if err != nil {
 		return nil, err
 	}

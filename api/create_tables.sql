@@ -1,22 +1,22 @@
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
     -- Дополнительные характеристики предмета --
 );
 
-CREATE TABLE factories (
+CREATE TABLE IF NOT EXISTS factories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     production_rate DOUBLE PRECISION NOT NULL
 );
 
-CREATE TABLE belts (
+CREATE TABLE IF NOT EXISTS belts (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
     -- Дополнительные характеристики ленты --
 );
 
-CREATE TABLE recipes (
+CREATE TABLE IF NOT EXISTS recipes (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     item_id INT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE recipes (
     FOREIGN KEY (factory_id) REFERENCES factories (id)
 );
 
-CREATE TABLE recipe_belts (
+CREATE TABLE IF NOT EXISTS recipe_belts (
     id SERIAL PRIMARY KEY,
     recipe_id INT NOT NULL,
     belt_id INT NOT NULL,
@@ -34,3 +34,9 @@ CREATE TABLE recipe_belts (
     FOREIGN KEY (recipe_id) REFERENCES recipes (id),
     FOREIGN KEY (belt_id) REFERENCES belts (id)
 );
+
+CREATE TABLE IF NOT EXISTS recipes_ierarchy
+(
+    id integer NOT NULL,
+    child_id integer NOT NULL DEFAULT 0
+)
