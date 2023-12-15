@@ -9,7 +9,7 @@ import (
 )
 
 type SqlDatabase struct {
-	connector *sql.DB
+	Connector *sql.DB
 }
 
 func GetSqlDatabse(dbHost, dbPort, dbUser, dbPassword, dbName string) (*SqlDatabase, error) {
@@ -24,15 +24,128 @@ func GetSqlDatabse(dbHost, dbPort, dbUser, dbPassword, dbName string) (*SqlDatab
 	return &SqlDatabase{db}, err
 }
 
+// FIXME(lexmach): this is bad
+func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
+	if id == 0 {
+		return nil, nil
+	}
+
+	recipe := &Recipe{}
+
+	// читаем из recipes данные
+	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE item_id=$1", id)
+	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan row in recipes with id %q: %w", id, err)
+	}
+
+	// FIXME(lexmach): rework
+	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", 1)
+	var beltId int
+	err = rowForBelt.Scan(&beltId, &recipe.BeltQuantity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan row in recipe_belts with id %d: %w", recipe.ID, err)
+	}
+
+	rowForFactory := db.Connector.QueryRow("SELECT name FROM factories WHERE id=$1", recipe.FactoryId)
+
+	err = rowForFactory.Scan(&recipe.FactoryName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan row in factories with id %d: %w", recipe.FactoryId, err)
+	}
+
+	// FIXME(lexmach): rework
+	rowForBeltName := db.Connector.QueryRow("SELECT name FROM belts WHERE id=$1", beltId)
+	err = rowForBeltName.Scan(&recipe.BeltName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan row in belts with id %d: %w", beltId, err)
+	}
+
+	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, item_quantity FROM recipes_input WHERE recipe_id=$1", recipe.ID)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query in recipes_input with id %d: %w", recipe.ID, err)
+	}
+	defer rowsForChildRecipes.Close()
+
+	for rowsForChildRecipes.Next() {
+		inputItem := &InputItem{}
+		err := rowsForChildRecipes.Scan(&inputItem.ID, &inputItem.Quantity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get childID in recipes_ierarchy: %w", err)
+		}
+
+		recipe.InputItems = append(recipe.InputItems, inputItem)
+	}
+
+	return recipe, nil
+}
+
+func (db *SqlDatabase) getItemRecipesId(id ItemID) (recipeIDs []RecipeID, err error) {
+	if db == nil {
+		return nil, fmt.Errorf("SqlDatabse is nil when fetching items")
+	}
+	if db.Connector == nil {
+		return nil, fmt.Errorf("SqlDatabse connector is nil when fetching items")
+	}
+
+	rows, err := db.Connector.Query("SELECT id FROM recipes WHERE item_id=$1", id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select all items: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var recipeID int
+		err := rows.Scan(&recipeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row in getRecipesId: %w", err)
+		}
+		recipeIDs = append(recipeIDs, recipeID)
+	}
+
+	return recipeIDs, nil
+}
+
+func (db *SqlDatabase) GetItem(id ItemID) (item *Item, err error) {
+	if db == nil {
+		return nil, fmt.Errorf("SqlDatabse is nil when fetching items")
+	}
+	if db.Connector == nil {
+		return nil, fmt.Errorf("SqlDatabse connector is nil when fetching items")
+	}
+	item = &Item{}
+
+	row := db.Connector.QueryRow("SELECT * FROM items WHERE id=$1", id)
+	err = row.Scan(&item.ID, &item.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan row in getItem %d: %w", id, err)
+	}
+
+	recipesIDs, err := db.getItemRecipesId(id)
+	if err != nil {
+		return nil, err
+	}
+	for _, recipeId := range recipesIDs {
+		recipe, err := db.GetRecipe(recipeId)
+		if err != nil {
+			return nil, err
+		}
+		item.Recipes = append(item.Recipes, recipe)
+	}
+
+	return item, nil
+}
+
 func (db *SqlDatabase) GetItems() ([]*Item, error) {
 	if db == nil {
 		return nil, fmt.Errorf("SqlDatabse is nil when fetching items")
 	}
-	if db.connector == nil {
+	if db.Connector == nil {
 		return nil, fmt.Errorf("SqlDatabse connector is nil when fetching items")
 	}
 
-	rows, err := db.connector.Query("SELECT * FROM items")
+	rows, err := db.Connector.Query("SELECT id FROM items")
 	if err != nil {
 		return nil, fmt.Errorf("failed to select all items: %w", err)
 	}
@@ -40,10 +153,15 @@ func (db *SqlDatabase) GetItems() ([]*Item, error) {
 
 	var items []*Item
 	for rows.Next() {
-		item := &Item{}
-		err := rows.Scan(&item.ID, &item.Name)
+		var itemID int
+		err := rows.Scan(&itemID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return nil, fmt.Errorf("failed to scan row in getItems: %w", err)
+		}
+
+		item, err := db.GetItem(itemID)
+		if err != nil {
+			return nil, err
 		}
 		items = append(items, item)
 	}
@@ -51,68 +169,49 @@ func (db *SqlDatabase) GetItems() ([]*Item, error) {
 	return items, nil
 }
 
-// FIXME(lexmach): logic refactor
-func (db *SqlDatabase) GetRecipe(id string) (*Recipe, error) {
-	if id == "0" {
+// FIXME(lexmach): need to count ProductionFactory correctly
+func (db *SqlDatabase) GetRecipeRecursive(id RecipeID) (recipe *RecipeRecursive, err error) {
+	if id == 0 {
 		return nil, nil
 	}
 
-	recipe := &Recipe{}
-
-	// читаем из recipes данные
-	// FIXME(lexmach): sql injections fix
-	row := db.connector.QueryRow("SELECT * FROM recipes WHERE item_id=$1", id)
-	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
+	recipeBase, err := db.GetRecipe(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan row in recipes with id %q: %w", id, err)
+		return nil, err
 	}
+	recipe = recipeBase.ToRecursive()
 
-	//
-	rowForBelt := db.connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", recipe.ID)
-
-	var beltId int
-	err = rowForBelt.Scan(&beltId, &recipe.BeltQuantity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan row in recipe_belts with id %d: %w", recipe.ID, err)
-	}
-
-	rowForFactory := db.connector.QueryRow("SELECT name FROM factories WHERE id=$1", recipe.FactoryId)
-
-	err = rowForFactory.Scan(&recipe.FactoryName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan row in factories with id %d: %w", recipe.FactoryId, err)
-	}
-
-	//
-	rowForBeltName := db.connector.QueryRow("SELECT name FROM belts WHERE id=$1", beltId)
-	err = rowForBeltName.Scan(&recipe.BeltName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan row in belts with id %d: %w", beltId, err)
-	}
-
-	recipe.Children = make([]*Recipe, 0)
-
-	rowsForChildRecipes, err := db.connector.Query("SELECT child_id FROM recipes_ierarchy WHERE id=$1", recipe.ID)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to query in recipes_ierarchy with id %d: %w", recipe.ID, err)
-	}
-	defer rowsForChildRecipes.Close()
-
-	for rowsForChildRecipes.Next() {
-		var childID int
-		err := rowsForChildRecipes.Scan(&childID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get childID in recipes_ierarchy: %w", err)
-		}
-
-		child, err := db.GetRecipe(fmt.Sprintf("%d", childID))
+	for _, inputItem := range recipeBase.InputItems {
+		inputItemDB, err := db.GetItem(inputItem.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		if child != nil {
-			recipe.Children = append(recipe.Children, child)
+		// Bad case scenario, item has no recipes
+		// this should be not possible, but who knows
+		// TODO(lexmach): add log
+		if len(inputItemDB.Recipes) == 0 {
+			recipe.Children = append(recipe.Children, &RecipeRecursive{
+				ID:                0,
+				Name:              inputItemDB.Name,
+				ItemID:            inputItem.ID,
+				FactoryName:       "FIXME",
+				ProductionFactory: 1,
+				FactoryId:         0,
+				BeltName:          "FIXME",
+				BeltQuantity:      0,
+				Children:          nil,
+			})
+			continue
+		}
+		// FIXME(lexmach): think of multiple recipes in inputItemDB
+		inputItemRecipe, err := db.GetRecipeRecursive(inputItemDB.Recipes[0].ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if inputItemRecipe != nil {
+			recipe.Children = append(recipe.Children, inputItemRecipe)
 		}
 	}
 
