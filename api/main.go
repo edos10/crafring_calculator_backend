@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -15,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to setup router ", err)
 	}
-	fmt.Println(os.Getenv("DB_PORT"))
-	fmt.Println("Server is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+
+	fmt.Println("API server is running on port 5051")
+	log.Fatal(http.ListenAndServe(":5051", router))
 }

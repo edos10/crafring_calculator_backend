@@ -1,1 +1,43 @@
-# TO DO
+# TO DOversion: '3'
+
+services:
+
+  api:
+    ports:
+      - "5051:5052"
+    env_file:
+      - .env
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+
+    restart: always
+
+    container_name: crafting_backend_api
+
+
+  postgres:
+    image: postgres:latest
+    container_name: crafting_backend_postgres
+    volumes:
+      - ./migrations/01_create_tables.sql:/docker-entrypoint-initdb.d/01_create_tables.sql
+      - ./migrations/02_insert_test_data.sql:/docker-entrypoint-initdb.d/02_insert_test_data.sql
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5429:5436"
+    env_file:
+      - .env
+    restart: always
+
+  cdn:
+    ports:
+      - "5053:5054"
+    env_file:
+      - .env
+    build:
+      context: ./cdn
+      dockerfile: Dockerfile
+
+    restart: always
+
+    container_name: crafting_backend_cdn
