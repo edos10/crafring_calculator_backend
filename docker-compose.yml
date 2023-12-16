@@ -4,7 +4,7 @@ services:
 
   api:
     ports:
-      - "5051:5052"
+      - "5051:5051"
     env_file:
       - .env
     build:
@@ -24,14 +24,17 @@ services:
       - ./migrations/02_insert_test_data.sql:/docker-entrypoint-initdb.d/02_insert_test_data.sql
       - ./postgres_data:/var/lib/postgresql/data
     ports:
-      - "5429:5436"
+      - "5429:5432"
     env_file:
       - .env
     restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
 
   cdn:
     ports:
-      - "5053:5054"
+      - "5053:5053"
     env_file:
       - .env
     build:
