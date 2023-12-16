@@ -47,7 +47,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 	}
 
 	// FIXME(lexmach): rework
-	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", 1)
+	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", recipe.ID)
 	var beltId int
 	err = rowForBelt.Scan(&beltId, &recipe.BeltQuantity)
 	if err != nil {
