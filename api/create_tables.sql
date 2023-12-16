@@ -26,6 +26,16 @@ CREATE TABLE IF NOT EXISTS recipes (
     FOREIGN KEY (factory_id) REFERENCES factories (id)
 );
 
+
+CREATE TABLE IF NOT EXISTS recipes_input (
+       id SERIAL PRIMARY KEY,
+       item_id INT NOT NULL,
+       recipe_id INT NOT NULL,
+       quantity INT NOT NULL,
+       FOREIGN KEY (item_id) REFERENCES items (id),
+       FOREIGN KEY (recipe_id) REFERENCES recipes (id)
+);
+
 CREATE TABLE IF NOT EXISTS recipe_belts (
     id SERIAL PRIMARY KEY,
     recipe_id INT NOT NULL,

@@ -61,7 +61,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 		return nil, fmt.Errorf("failed to scan row in belts with id %d: %w", beltId, err)
 	}
 
-	rowsForChildRecipes, err := db.Connector.Query("SELECT child_id FROM recipes_ierarchy WHERE id=$1", recipe.ID)
+	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, quantity FROM recipes_input WHERE recipe_id=$1", recipe.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query in recipes_input with id %d: %w", recipe.ID, err)
@@ -70,7 +70,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 
 	for rowsForChildRecipes.Next() {
 		inputItem := &InputItem{}
-		err := rowsForChildRecipes.Scan(&inputItem.ID)
+		err := rowsForChildRecipes.Scan(&inputItem.ID, &inputItem.Quantity)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get childID in recipes_ierarchy: %w", err)
 		}
