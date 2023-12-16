@@ -1,1 +1,3 @@
-# crafring_calculator_backend
+# crafting_calculator_backend
+
+Бэкенд проекта https://github.com/edos10/crafting_calculator
