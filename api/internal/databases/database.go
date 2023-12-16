@@ -34,7 +34,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 	recipe := &Recipe{}
 
 	// читаем из recipes данные
-	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE item_id=$1", id)
+	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE id=$1", id)
 	if row.Err() != nil && strings.Contains(row.Err().Error(), "no rows") {
 		return nil, nil
 	}
