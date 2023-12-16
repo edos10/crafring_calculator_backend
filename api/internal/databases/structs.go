@@ -14,7 +14,7 @@ type Recipe struct {
 	BeltName          string       `json:"belt_name"`
 	BeltQuantity      int          `json:"belt_quantity"`
 	InputItems        []*InputItem `json:"input_items"`
-	Time              int          `json:"time"`
+	//Time              int          `json:"time"`
 }
 
 type Item struct {

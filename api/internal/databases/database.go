@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -34,6 +35,9 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 
 	// читаем из recipes данные
 	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE item_id=$1", id)
+	if strings.Contains(row.Err().Error(), "no rows") {
+		return nil, nil
+	}
 	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan row in recipes with id %q: %w", id, err)
