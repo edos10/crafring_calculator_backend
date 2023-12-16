@@ -15,7 +15,7 @@ type SqlDatabase struct {
 func GetSqlDatabse(dbHost, dbPort, dbUser, dbPassword, dbName string) (*SqlDatabase, error) {
 	dataSourceName := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbPort, dbName)
-
+	fmt.Printf("%s", dataSourceName)
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -47,6 +47,6 @@ func (db *SqlDatabase) GetPath(id int) (string, error) {
 	} else if err == sql.ErrNoRows {
 		return "", fmt.Errorf("Such path wasn't found")
 	} else {
-		return "", fmt.Errorf("Error in process request")
+		return "", err
 	}
 }
