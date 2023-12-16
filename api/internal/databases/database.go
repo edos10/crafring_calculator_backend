@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -33,14 +34,20 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 	recipe := &Recipe{}
 
 	// читаем из recipes данные
-	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE item_id=$1", id)
+	row := db.Connector.QueryRow("SELECT * FROM recipes WHERE id=$1", id)
+	if row.Err() != nil && strings.Contains(row.Err().Error(), "no rows") {
+		return nil, nil
+	}
 	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows") {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to scan row in recipes with id %q: %w", id, err)
 	}
 
 	// FIXME(lexmach): rework
-	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", 1)
+	rowForBelt := db.Connector.QueryRow("SELECT belt_id, quantity FROM recipe_belts WHERE recipe_id=$1", recipe.ID)
 	var beltId int
 	err = rowForBelt.Scan(&beltId, &recipe.BeltQuantity)
 	if err != nil {
@@ -61,7 +68,7 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 		return nil, fmt.Errorf("failed to scan row in belts with id %d: %w", beltId, err)
 	}
 
-	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, item_quantity FROM recipes_input WHERE recipe_id=$1", recipe.ID)
+	rowsForChildRecipes, err := db.Connector.Query("SELECT item_id, quantity FROM recipes_input WHERE recipe_id=$1", recipe.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query in recipes_input with id %d: %w", recipe.ID, err)

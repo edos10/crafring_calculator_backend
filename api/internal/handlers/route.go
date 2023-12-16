@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-
+        "fmt"
 	"github.com/gorilla/mux"
 )
 
@@ -15,14 +15,15 @@ type RouteHandler struct {
 
 // FIXME(lexmach): add log
 func (handler *RouteHandler) getItems(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if handler == nil {
-		// log.Fatal("Trying to route getItems with nil router")
+		fmt.Fprintf(w, "Trying to route getItems with nil router")
 		w.WriteHeader(500)
 		return
 	}
 	items, err := handler.db.GetItems()
 	if err != nil {
-		// log.Fatal(fmt.Sprintf("Trying to route getItems with error [%w] while getting items)", err))
+		fmt.Fprintf(w, fmt.Sprintf("Trying to route getItems with error [%w] while getting items)", err))
 		w.WriteHeader(500)
 		return
 	}
@@ -32,6 +33,7 @@ func (handler *RouteHandler) getItems(w http.ResponseWriter, r *http.Request) {
 
 // FIXME(lexmach): add log
 func (handler *RouteHandler) getRecipes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if handler == nil {
 		w.WriteHeader(500)
 		return

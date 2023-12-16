@@ -10,4 +10,5 @@ RUN go mod download
 
 COPY . .
 
-CMD ["go", "run", "/app/cdn/main.go"]
+CMD ["go", "run", "/app/cmd/main.go"]
+
