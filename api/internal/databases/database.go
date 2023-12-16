@@ -40,6 +40,9 @@ func (db *SqlDatabase) GetRecipe(id RecipeID) (*Recipe, error) {
 	}
 	err := row.Scan(&recipe.ID, &recipe.Name, &recipe.ItemID, &recipe.FactoryId, &recipe.ProductionFactory)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows") {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to scan row in recipes with id %q: %w", id, err)
 	}
 
